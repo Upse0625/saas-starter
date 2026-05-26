@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+out/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+data/*.db*
+seed.db
+.DS_Store
+*.log
