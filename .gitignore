@@ -1,15 +1,60 @@
+# Dependencies
 node_modules/
-.next/
-dist/
-out/
-*.tsbuildinfo
+/.pnp
+.pnp.*
+.pnpm-store/
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Environment — never commit real secrets. The template ships .env.example only.
 .env
 .env.*
 !.env.example
+
+# Databases
 *.db
 *.db-shm
 *.db-wal
+*.sqlite
 data/*.db*
+local.db*
 seed.db
-.DS_Store
+
+# Next.js / build output
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Logs
+logs/
 *.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+/coverage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors — ignore the folders but keep shareable config
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Deploy platforms
+.vercel
+
+# Misc
+*.pem
+.turbo/

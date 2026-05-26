@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "setup": "cp .env.example .env && npm install && npm run db:migrate",
+    "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs",
     "db:studio": "drizzle-kit studio"
   },
