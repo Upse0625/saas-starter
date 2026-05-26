@@ -7,7 +7,16 @@ const COOKIE_NAME = 'session';
 const MAX_AGE = 60 * 60 * 24 * 7; // 7 days in seconds
 
 function getSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET ?? 'fallback-dev-secret-change-in-production';
+  // Accept JWT_SECRET (what docker-compose / the VPS .env provide) and fall back
+  // to AUTH_SECRET for backwards compatibility.
+  const secret = process.env.JWT_SECRET ?? process.env.AUTH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      // Never sign tokens with a predictable key in production — fail loudly.
+      throw new Error('JWT_SECRET is not set. Refusing to start with an insecure signing key.');
+    }
+    return new TextEncoder().encode('dev-only-insecure-secret-do-not-use-in-prod');
+  }
   return new TextEncoder().encode(secret);
 }
 
