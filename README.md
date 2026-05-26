@@ -176,7 +176,7 @@ saasly/
 
 ## Support
 
-- **Email:** hello@drodriguez.site
+- **Email:** drodguez1080@gmail.com
 - **Issues:** open a GitHub issue on the repo you receive after purchase.
 - **Pull requests** are welcome — fixes and improvements that benefit everyone get merged.
 
@@ -188,4 +188,4 @@ MIT, with one restriction: you can use this in unlimited personal and commercial
 
 **Damian Rodriguez** — [drodriguez.site](https://drodriguez.site)
 
-> I built Pocket Root ([pocketroot.com](https://pocketroot.com), 1k+ users) on the same architecture. This starter is what I wished I had when I started.
+> I built Pocket Root ([pocketroot.com](https://pocketroot.com)) on the same architecture. This starter is what I wished I had when I started.
