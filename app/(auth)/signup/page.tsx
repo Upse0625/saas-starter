@@ -1,12 +1,24 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { Suspense, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, AlertCircle, Sparkles, Check } from 'lucide-react';
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+function SignupPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const dest = nextParam && nextParam.startsWith('/') ? nextParam : '/dashboard';
+  const prefillEmail = searchParams.get('email') ?? '';
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +39,7 @@ export default function SignupPage() {
       });
 
       if (res.ok) {
-        router.push('/dashboard');
+        router.push(dest);
         router.refresh();
       } else {
         const data = (await res.json()) as { error?: string };
@@ -147,6 +159,7 @@ export default function SignupPage() {
                 type="email"
                 autoComplete="email"
                 required
+                defaultValue={prefillEmail}
                 className="input"
                 placeholder="jane@company.com"
               />

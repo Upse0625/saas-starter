@@ -7,7 +7,7 @@ export type AuditAction =
   | 'user.2fa_enabled' | 'user.2fa_disabled' | 'user.2fa_challenge'
   | 'session.revoked'
   | 'org.created' | 'org.updated'
-  | 'org.member_invited' | 'org.member_removed' | 'org.member_role_changed'
+  | 'org.member_invited' | 'org.member_joined' | 'org.member_removed' | 'org.member_role_changed'
   | 'api_key.created' | 'api_key.revoked' | 'api_key.used'
   | 'billing.checkout_started' | 'billing.subscription_updated';
 

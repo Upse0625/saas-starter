@@ -34,6 +34,8 @@ function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resetOk = searchParams.get('reset') === 'ok';
+  const nextParam = searchParams.get('next');
+  const dest = nextParam && nextParam.startsWith('/') ? nextParam : '/dashboard';
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +72,7 @@ function LoginPageInner() {
         return;
       }
 
-      router.push('/dashboard');
+      router.push(dest);
       router.refresh();
     });
   }
@@ -88,7 +90,7 @@ function LoginPageInner() {
       });
 
       if (res.ok) {
-        router.push('/dashboard');
+        router.push(dest);
         router.refresh();
         return;
       }

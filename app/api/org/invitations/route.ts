@@ -4,6 +4,7 @@ import { invitations, org_members, organizations } from '@/lib/db/schema';
 import { getSession } from '@/lib/auth';
 import { nanoid } from '@/lib/utils';
 import { audit } from '@/lib/audit';
+import { sendInviteEmail } from '@/lib/email';
 import { rateLimitByIp } from '@/lib/rate-limit';
 import { eq, and } from 'drizzle-orm';
 
@@ -69,8 +70,10 @@ export async function POST(request: NextRequest) {
 
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/invite/${token}`;
 
-  // In production with RESEND_API_KEY, send a real email. In dev, just log.
-  console.log(`[INVITE] To: ${email}, Org: ${org.name}, Role: ${role}, URL: ${inviteUrl}`);
+  // Sends a real email when RESEND_API_KEY is set; logs to the console otherwise.
+  sendInviteEmail(email, org.name, token, session.email).catch((err) => {
+    console.error('[invitations] email send failed', err);
+  });
 
   audit({
     action: 'org.member_invited',
