@@ -1,104 +1,191 @@
-# SaaS Starter
+# Saasly Starter
 
-> A multi-tenant SaaS foundation with auth, 2FA, team orgs, billing, and a public API. Part of [drodriguez.site](https://drodriguez.site) — a portfolio of production full-stack demos by Damian Rodriguez.
+Production-grade SaaS foundation. Skip 8 months of plumbing.
 
-**Live demo:** https://saas.drodriguez.site
+This is the auth, billing, multi-tenancy, and API layer you rewrite on every SaaS — built once, properly, in TypeScript. Clone it, point it at your Stripe and Resend accounts, and start building your actual product.
 
-## What it demonstrates
-- Stateful JWT sessions (signed with `jose`, HS256) backed by a `sessions` table so individual sessions can be revoked, not just expired
-- TOTP two-factor auth with QR-code enrollment and one-time recovery codes (`otplib` + `qrcode`)
-- Token-based email flows (verification, password reset, org invitations) with a console fallback when no mail provider is configured
-- A hashed-secret API key scheme (`sk_live_` prefix, SHA-256 at rest, short display prefix) powering a separate public `/v1` API
-- Per-key in-memory rate limiting with standard `X-RateLimit-*` / `Retry-After` headers
-- Multi-tenant data model: organizations, members with roles (owner/admin/member), and invitations
-- An append-only audit log that records security-relevant actions, including every authenticated API call
-- Optional real Stripe billing (checkout, customer portal, webhooks) that degrades gracefully to a no-op when keys are absent
+## What's included
+
+- ✅ JWT auth with httpOnly cookies + per-device session revocation
+- ✅ Two-factor authentication (TOTP via authenticator apps, with recovery codes)
+- ✅ Multi-tenant organizations with roles (owner / admin / member)
+- ✅ Email invitations with token-based acceptance + decline (email-match verified)
+- ✅ Stripe billing — Checkout + Customer Portal + signature-verified webhooks (3 tiers wired)
+- ✅ Public REST API at `/v1` with SHA-256-hashed API keys + per-key rate limiting
+- ✅ Audit log — 21 action types, IP + user-agent capture, paginated viewer
+- ✅ Email verification + password reset (Resend integration, console fallback in dev)
+- ✅ Production-tested SQLite with WAL mode + auto-migration on boot
+- ✅ TypeScript strict mode, zero `any` in `app/` and `lib/`
+
+## Live demo
+
+**[saas.drodriguez.site](https://saas.drodriguez.site)** — try it before you buy. Sign up, enable 2FA, create an API key, invite a teammate, open the audit log. What you see is exactly what's in this repo.
+
+## Quick start
+
+```bash
+# 1. Clone and enter
+git clone <your-repo-url> saasly && cd saasly
+
+# 2. Install dependencies (npm, pnpm, or bun all work)
+npm install
+
+# 3. Create your .env and generate a signing secret
+cp .env.example .env
+echo "JWT_SECRET=$(openssl rand -base64 32)" >> .env
+
+# 4. Create the database (all tables + indexes)
+npm run db:migrate
+
+# 5. Run it
+npm run dev          # http://localhost:3000
+```
+
+> Shortcut: `npm run setup` runs steps 2–4 in one command. Then add a `JWT_SECRET` and `npm run dev`.
+> Optional: `npm run db:seed` loads a demo org and three logins (`demo@example.com` / `demo1234`).
+
+The app boots with **only `JWT_SECRET` set** — email and billing are optional and degrade gracefully until you add their keys.
+
+## Setup guide
+
+### Resend (transactional email)
+
+Used for email verification, password reset, and invitation emails. Without it, those emails print to the server console (fine for local dev).
+
+1. Create an account at **[resend.com](https://resend.com)**.
+2. Verify your sending domain at **[resend.com/domains](https://resend.com/domains)**.
+3. Create an API key at **[resend.com/api-keys](https://resend.com/api-keys)**.
+4. Add to `.env`:
+
+```bash
+RESEND_API_KEY=re_your_key_here
+EMAIL_FROM=noreply@yourdomain.com   # must be on a domain you verified above
+```
+
+### Stripe (billing)
+
+Used for subscription Checkout, the Customer Portal, and plan-change webhooks. Without it, the billing UI renders but checkout is disabled.
+
+1. Grab your secret key at **[dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys)** (start with **test mode** keys).
+2. Create two products with recurring prices at **[dashboard.stripe.com/products](https://dashboard.stripe.com/products)** — one for Pro, one for Enterprise. Copy each **price ID** (starts with `price_`).
+3. Create a webhook at **[dashboard.stripe.com/webhooks](https://dashboard.stripe.com/webhooks)** pointing to `{NEXT_PUBLIC_APP_URL}/api/stripe/webhook`, subscribe to `checkout.session.completed` and the `customer.subscription.*` events, then copy the **signing secret** (`whsec_…`).
+4. Add to `.env`:
+
+```bash
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRO_PRICE_ID=price_...
+STRIPE_ENTERPRISE_PRICE_ID=price_...
+```
+
+For local webhook testing:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+### Database
+
+Ships with **SQLite** (via `better-sqlite3`) in WAL mode. Zero setup — the file is created and migrated automatically.
+
+```bash
+DB_PATH=./local.db   # defaults here; point at a mounted volume in Docker
+```
+
+Schema lives in `lib/db/schema.ts` (Drizzle) plus the full migrator in `lib/db/index.ts` and the standalone `scripts/migrate.mjs`.
+
+**Moving to Postgres:** the ORM layer is Drizzle, so the typed queries port cleanly — swap `drizzle-orm/better-sqlite3` for `drizzle-orm/postgres-js` and update `drizzle.config.ts`. Be aware that several hot-path routes use raw `better-sqlite3` (`sqlite.prepare(...)`) for speed; you'll need to port those handful of raw queries too. It's a focused afternoon, not a rewrite.
+
+## What's NOT included
+
+Read this before you buy — it's as important as the feature list.
+
+- **No production email by default.** Ships with a placeholder Resend key; verification/reset/invite emails log to the console until you add a real key (see above).
+- **No Stripe products created.** Ships in test mode with no price IDs. You create your own products and paste the IDs. The billing code is real and signature-verified — the catalog is yours to define.
+- **Rate limiting is in-memory.** Token-bucket limiter that's correct for a single instance and resets on restart. For multi-instance/serverless, swap `lib/rate-limit.ts` for a Redis-backed store (the interface is ~15 lines).
+- **SQLite by default.** Comfortable for thousands of users on one box. For horizontal scale, migrate to Postgres (notes above).
+- **"Delete organization" is disabled** in the demo (one button, guarded by `title="Feature not implemented in demo"` in `app/(dashboard)/settings/page.tsx`). Wiring it up is a small handler — left out so a demo click can't nuke data.
+- **No test suite.** This is production-ready application code, not a test harness. There are no unit/e2e tests included; add your own around your business logic.
+
+## Architecture decisions
+
+- **Next.js 16 App Router** (not Pages Router) — server components for data-fetching pages, route handlers for the API, and edge middleware for route protection. It's the current, supported model.
+- **Drizzle over Prisma** — no codegen step, no separate query engine binary, synchronous SQLite access, and SQL you can actually read. Lighter to ship and to reason about.
+- **SQLite by default** — most SaaS apps die with zero users, not from a database bottleneck. WAL-mode SQLite handles real traffic, deploys as a single file, and removes a whole class of infra. Drizzle keeps the door open to Postgres when you actually need it.
+- **JWT over server sessions** — stateless auth in an httpOnly cookie, but with a `sessions` table for revocation, so you get the best of both: no per-request session lookup on the hot path, plus per-device "log out everywhere".
+- **Resend over SendGrid/Postmark** — a clean modern API, generous free tier, and the integration here gracefully no-ops (console-logs) without a key, so the app runs day one.
+- **Stripe Checkout over Elements** — Stripe hosts the payment page, so you inherit their PCI scope, SCA handling, and conversion-tuned UI for free. Elements is more work for control you probably don't need yet.
 
 ## Tech stack
-- **Next.js 16** (App Router, React 19) — built with Next.js standalone output
-- **TypeScript** + **Tailwind CSS 4**
-- **better-sqlite3** with **Drizzle ORM** (`drizzle-kit` for studio)
-- **jose** — JWT signing/verification
-- **bcryptjs** — password hashing
-- **otplib** + **qrcode** — TOTP 2FA
-- **stripe** + **@stripe/stripe-js** — billing (optional)
-- **resend** — transactional email (optional)
 
-## Features
-- Email/password signup and login with bcrypt hashing
-- Email verification and password reset via expiring tokens
-- TOTP 2FA: setup, enable, disable, login challenge, and recovery codes
-- Active session listing and revocation
-- Organizations with role-based membership and email invitations
-- API key management — create, list, and revoke keys (Settings → API Keys)
-- Public REST API under `/v1` authenticated by Bearer API key
-- Audit log of account and org activity
-- Stripe checkout, billing portal, and webhook handling across Starter/Pro/Enterprise plans
+| Layer | Choice | Version |
+|-------|--------|---------|
+| Framework | Next.js (App Router) | 16.2.4 |
+| UI | React | 19.2.4 |
+| Language | TypeScript (strict) | ^5 |
+| Styling | Tailwind CSS | ^4 |
+| Icons | lucide-react | ^0.473.0 |
+| ORM | Drizzle ORM | ^0.45.2 |
+| Database | better-sqlite3 (SQLite, WAL) | ^12.9.0 |
+| Auth (JWT) | jose | ^6.2.3 |
+| Password hashing | bcryptjs | ^3.0.3 |
+| 2FA | otplib + qrcode | ^12.0.1 / ^1.5.4 |
+| Billing | stripe + @stripe/stripe-js | ^22.1.0 / ^9.4.0 |
+| Email | resend | ^6.12.2 |
 
-## Running locally
-### Prerequisites
-- Node 22+, pnpm 10
+## Project structure
 
-### Setup
-```bash
-pnpm install
-pnpm db:seed   # creates local.db and seeds demo users + an org
-pnpm dev
-```
-Open http://localhost:3000
-
-The SQLite database (`local.db` by default) is created and migrated automatically on first import — `pnpm db:seed` just populates it with demo data. Use `pnpm db:studio` to browse it with Drizzle Studio.
-
-### Demo credentials
-Seeded by `scripts/seed.mjs` into the **Acme Corp** org (Pro plan):
-
-| Email | Password | Role |
-| --- | --- | --- |
-| `demo@example.com` | `demo1234` | owner |
-| `alice@example.com` | `alice1234` | admin |
-| `bob@example.com` | `bob1234` | member |
-
-### Environment variables
-None are required for local development — auth falls back to an insecure dev signing key, and email/Stripe degrade to no-ops. In production, `JWT_SECRET` is mandatory (the app refuses to start without it).
-
-| Variable | Required? | What it does | Default |
-| --- | --- | --- | --- |
-| `JWT_SECRET` | Required in production | Signing key for session JWTs. Falls back to `AUTH_SECRET`, then a dev-only key outside production. | dev-only insecure key |
-| `DB_PATH` | No | SQLite database file path. | `./local.db` |
-| `NEXT_PUBLIC_APP_URL` | No | Base URL used in email links. | `http://localhost:3001` |
-| `APP_NAME` | No | Product name shown in emails and as the TOTP issuer. | `SaaS Starter` |
-| `EMAIL_FROM` | No | From address for outgoing email. | `noreply@example.com` |
-| `RESEND_API_KEY` | Optional | Enables real email via Resend. Without it, emails print to the server console. | unset |
-| `STRIPE_SECRET_KEY` | Optional | Enables Stripe billing. Without it, billing endpoints are disabled. | unset |
-| `STRIPE_PRO_PRICE_ID` | Optional | Stripe price ID for the Pro plan. | unset |
-| `STRIPE_ENTERPRISE_PRICE_ID` | Optional | Stripe price ID for the Enterprise plan. | unset |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Optional | Stripe publishable key for the client. | unset |
-
-## API reference
-The `/v1` API is a public, key-authenticated REST surface separate from the cookie-authenticated dashboard. Create a key in **Settings → API Keys** (it's shown once, at creation) and send it as a Bearer token:
-
-```bash
-curl https://saas.drodriguez.site/v1/me \
-  -H "Authorization: Bearer sk_live_..."
+```text
+saasly/
+├── app/
+│   ├── (marketing)/            # public landing page
+│   ├── (auth)/                 # login, signup
+│   ├── (dashboard)/            # dashboard + settings (members, billing, API keys, security, activity)
+│   ├── invite/[token]/         # invitation acceptance / decline page
+│   ├── verify-email/[token]/   # email verification
+│   ├── reset-password/[token]/ # password reset
+│   ├── forgot-password/
+│   ├── api/
+│   │   ├── auth/               # login, signup, logout, 2fa/*, sessions, verify, reset
+│   │   ├── org/                # members, invitations
+│   │   ├── invitations/[token]/# GET details, accept, decline
+│   │   ├── keys/               # API key CRUD
+│   │   ├── stripe/             # checkout, portal, webhook
+│   │   └── audit/              # paginated audit log
+│   └── v1/                     # public REST API: me, members, usage (Bearer API key)
+├── lib/
+│   ├── auth.ts                 # JWT, cookies, session creation + revocation
+│   ├── totp.ts                 # 2FA secret/QR/verify + recovery codes
+│   ├── api-key.ts              # key generation + SHA-256 hashing + verification
+│   ├── audit.ts                # audit() writer + listAuditLogs()
+│   ├── rate-limit.ts           # in-memory token-bucket limiter
+│   ├── stripe.ts               # plan catalog + Stripe client
+│   ├── email.ts                # Resend wrapper (console fallback)
+│   ├── format.ts               # small formatting helpers
+│   ├── utils.ts                # nanoid, slugify, etc.
+│   └── db/
+│       ├── schema.ts           # Drizzle schema
+│       └── index.ts            # client + auto-migration
+├── scripts/
+│   ├── migrate.mjs             # create all tables + indexes (db:migrate)
+│   └── seed.mjs                # demo org + logins (db:seed)
+├── .env.example                # every env var, documented
+├── Dockerfile                  # Next.js standalone production image
+└── proxy.ts                    # edge middleware: route protection
 ```
 
-All endpoints are scoped to the org that owns the key, rate-limited to **60 requests/min per key**, and audited as `api_key.used`. Missing or malformed keys return `401`; rate-limit breaches return `429` with `Retry-After`.
+## Support
 
-| Method | Path | Returns |
-| --- | --- | --- |
-| `GET` | `/v1/me` | The key owner's user (id, email, name) and their organization (id, name, slug, plan). |
-| `GET` | `/v1/members` | All members of the org, each with role and join date. |
-| `GET` | `/v1/usage` | Audit-event counts for the org over a 30-day window: `total_events` and a `by_action` breakdown. |
-
-## Architecture notes
-- **Sessions are revocable.** The JWT carries a `sessionId` that's checked against a `sessions` row on each request, so a session can be killed server-side. JWTs without a `sessionId` (legacy cookies) are accepted to avoid logging existing users out.
-- **API keys are never stored in plaintext.** Only the SHA-256 hash and a short display prefix are persisted; the full key is shown once at creation.
-- **Rate limiting is in-memory** (a `Map` of token buckets with periodic sweeping). This is intentionally single-instance — fine for a demo, but a shared store (e.g. Redis) would be needed to scale horizontally.
-- **Stripe is optional by design.** `getStripe()` returns `null` when no secret key is set, and billing routes short-circuit, so the demo runs without any payment credentials.
-- **The DB self-migrates.** `lib/db` runs `CREATE TABLE IF NOT EXISTS` on import with WAL mode and tuned pragmas — no separate migration step for the demo.
-
-## Deployment
-Containerized with the included `Dockerfile` (Next.js standalone) and served behind nginx + Let's Encrypt on a VPS. The image pre-seeds a `seed.db` at build time; the entrypoint copies it to the persistent `DB_PATH` on first boot. Full orchestration in the [Portfolio monorepo](https://github.com/Upse0625/Portfolio).
+- **Email:** hello@drodriguez.site
+- **Issues:** open a GitHub issue on the repo you receive after purchase.
+- **Pull requests** are welcome — fixes and improvements that benefit everyone get merged.
 
 ## License
-For portfolio/demonstration use.
+
+MIT, with one restriction: you can use this in unlimited personal and commercial projects and modify it however you like — but you may **not** resell or redistribute it as a competing starter template / boilerplate product. Build your apps with it; don't repackage and sell it. Full text in [`LICENSE`](./LICENSE).
+
+## Built by
+
+**Damian Rodriguez** — [drodriguez.site](https://drodriguez.site)
+
+> I built Pocket Root ([pocketroot.com](https://pocketroot.com), 1k+ users) on the same architecture. This starter is what I wished I had when I started.
