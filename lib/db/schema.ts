@@ -39,6 +39,7 @@ export const invitations = sqliteTable('invitations', {
   expires_at: text('expires_at').notNull(),
   created_at: text('created_at').notNull(),
   accepted_at: text('accepted_at'),
+  declined_at: text('declined_at'),
 });
 
 export type User = typeof users.$inferSelect;

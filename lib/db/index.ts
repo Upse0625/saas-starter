@@ -55,7 +55,8 @@ function migrate() {
       token TEXT NOT NULL UNIQUE,
       expires_at TEXT NOT NULL,
       created_at TEXT NOT NULL,
-      accepted_at TEXT
+      accepted_at TEXT,
+      declined_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS email_verifications (
@@ -136,6 +137,12 @@ function migrate() {
   if (!colNames.has('totp_secret')) sqlite.exec('ALTER TABLE users ADD COLUMN totp_secret TEXT');
   if (!colNames.has('totp_enabled')) sqlite.exec('ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0');
   if (!colNames.has('totp_recovery_codes')) sqlite.exec('ALTER TABLE users ADD COLUMN totp_recovery_codes TEXT');
+
+  // invitations.declined_at — added after the table shipped; backfill for existing DBs.
+  const inviteCols = sqlite.prepare("PRAGMA table_info(invitations)").all() as { name: string }[];
+  if (!inviteCols.some(c => c.name === 'declined_at')) {
+    sqlite.exec('ALTER TABLE invitations ADD COLUMN declined_at TEXT');
+  }
 }
 
 migrate();

@@ -8,6 +8,7 @@ export type AuditAction =
   | 'session.revoked'
   | 'org.created' | 'org.updated'
   | 'org.member_invited' | 'org.member_joined' | 'org.member_removed' | 'org.member_role_changed'
+  | 'org.invitation_accepted' | 'org.invitation_declined'
   | 'api_key.created' | 'api_key.revoked' | 'api_key.used'
   | 'billing.checkout_started' | 'billing.subscription_updated';
 

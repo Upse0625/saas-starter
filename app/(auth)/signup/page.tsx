@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useTransition } from 'react';
+import { Suspense, useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, AlertCircle, Sparkles, Check } from 'lucide-react';
@@ -16,19 +16,42 @@ export default function SignupPage() {
 function SignupPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextParam = searchParams.get('next');
-  const dest = nextParam && nextParam.startsWith('/') ? nextParam : '/dashboard';
-  const prefillEmail = searchParams.get('email') ?? '';
+
+  // When arriving from an invite link (/signup?invite=<token>) we lock the email
+  // to the invited address and, after signup, auto-accept the invite.
+  const inviteToken = searchParams.get('invite');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteOrg, setInviteOrg] = useState('');
+
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    fetch(`/api/invitations/${inviteToken}`)
+      .then(async (r) => {
+        const d = (await r.json()) as { valid: boolean; email?: string; orgName?: string };
+        if (d.valid && d.email) {
+          setInviteEmail(d.email);
+          setInviteOrg(d.orgName ?? '');
+        }
+      })
+      .catch(() => {});
+  }, [inviteToken]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const orgName = formData.get('orgName') as string;
+    // For invited signups the email field is read-only and bound to inviteEmail.
+    const email = inviteToken && inviteEmail ? inviteEmail : (formData.get('email') as string);
+    // Invited users are joining an existing org, so they don't name one — we
+    // still create a personal workspace (the signup API requires it) and then
+    // switch them into the invited org on accept.
+    const orgName = inviteToken
+      ? `${name.split(' ')[0] || 'My'}'s workspace`
+      : (formData.get('orgName') as string);
     const password = formData.get('password') as string;
 
     startTransition(async () => {
@@ -38,13 +61,26 @@ function SignupPageInner() {
         body: JSON.stringify({ name, email, orgName, password }),
       });
 
-      if (res.ok) {
-        router.push(dest);
-        router.refresh();
-      } else {
+      if (!res.ok) {
         const data = (await res.json()) as { error?: string };
         setError(data.error ?? 'Sign up failed');
+        return;
       }
+
+      // Signup logs the user in. If this was an invite, accept it now and land
+      // them in the invited org.
+      if (inviteToken) {
+        const accept = await fetch(`/api/invitations/${inviteToken}/accept`, { method: 'POST' });
+        if (!accept.ok) {
+          // Account was created; just send them to the invite page to retry accept.
+          router.push(`/invite/${inviteToken}`);
+          router.refresh();
+          return;
+        }
+      }
+
+      router.push('/dashboard');
+      router.refresh();
     });
   }
 
@@ -119,10 +155,14 @@ function SignupPageInner() {
 
           <div className="mt-8 mb-8 anim-fade-up delay-1">
             <h1 className="text-3xl font-semibold mb-2" style={{ letterSpacing: '-0.025em' }}>
-              Create your account
+              {inviteToken ? 'Accept your invitation' : 'Create your account'}
             </h1>
             <p className="text-sm" style={{ color: 'var(--muted-strong)' }}>
-              Free forever on Starter — no credit card required.
+              {inviteToken
+                ? inviteOrg
+                  ? `Create your account to join ${inviteOrg}.`
+                  : 'Create your account to join your team.'
+                : 'Free forever on Starter — no credit card required.'}
             </p>
           </div>
 
@@ -159,25 +199,36 @@ function SignupPageInner() {
                 type="email"
                 autoComplete="email"
                 required
-                defaultValue={prefillEmail}
+                // Invited signups must use the invited address — lock the field.
+                defaultValue={inviteToken ? inviteEmail : undefined}
+                readOnly={!!inviteToken && !!inviteEmail}
                 className="input"
                 placeholder="jane@company.com"
+                style={inviteToken && inviteEmail ? { opacity: 0.7, cursor: 'not-allowed' } : undefined}
               />
+              {inviteToken && inviteEmail && (
+                <p className="mt-1.5 text-xs" style={{ color: 'var(--muted)' }}>
+                  This invitation was sent to this address.
+                </p>
+              )}
             </div>
 
-            <div>
-              <label htmlFor="orgName" className="block text-sm font-medium mb-1.5">
-                Organization name
-              </label>
-              <input
-                id="orgName"
-                name="orgName"
-                type="text"
-                required
-                className="input"
-                placeholder="Acme Corp"
-              />
-            </div>
+            {/* Invited users join an existing org, so we hide the org-name field. */}
+            {!inviteToken && (
+              <div>
+                <label htmlFor="orgName" className="block text-sm font-medium mb-1.5">
+                  Organization name
+                </label>
+                <input
+                  id="orgName"
+                  name="orgName"
+                  type="text"
+                  required
+                  className="input"
+                  placeholder="Acme Corp"
+                />
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-1.5">
