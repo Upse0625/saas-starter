@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import { nanoid } from '@/lib/utils';
 import { audit } from '@/lib/audit';
 import { sendInviteEmail } from '@/lib/email';
+import { publishEvent } from '@/lib/webhooks';
 import { rateLimitByIp } from '@/lib/rate-limit';
 import { eq, and } from 'drizzle-orm';
 
@@ -85,6 +86,8 @@ export async function POST(request: NextRequest) {
   }).catch((err) => {
     console.error('[invitations] audit failed', err);
   });
+
+  publishEvent({ orgId: session.orgId, type: 'member.invited', data: { email, role, invite_id: inviteId } });
 
   return NextResponse.json({ ok: true, inviteId, inviteUrl });
 }

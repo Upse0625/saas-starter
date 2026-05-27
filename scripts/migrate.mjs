@@ -127,6 +127,35 @@ db.exec(`
     created_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS webhook_endpoints (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL REFERENCES organizations(id),
+    url TEXT NOT NULL,
+    secret TEXT NOT NULL,
+    description TEXT,
+    events TEXT NOT NULL DEFAULT '*',
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_by_user_id TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id TEXT PRIMARY KEY,
+    endpoint_id TEXT NOT NULL REFERENCES webhook_endpoints(id),
+    org_id TEXT NOT NULL REFERENCES organizations(id),
+    event_type TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    status_code INTEGER,
+    response_body TEXT,
+    error TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_retry_at TEXT,
+    last_attempt_at TEXT,
+    created_at TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   CREATE INDEX IF NOT EXISTS idx_org_members_user ON org_members(user_id);
   CREATE INDEX IF NOT EXISTS idx_org_members_org ON org_members(org_id);
@@ -138,6 +167,10 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_audit_org ON audit_logs(org_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_user_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_webhook_endpoints_org ON webhook_endpoints(org_id);
+  CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_endpoint ON webhook_deliveries(endpoint_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_org ON webhook_deliveries(org_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_retry ON webhook_deliveries(status, next_retry_at);
 `);
 
 db.close();

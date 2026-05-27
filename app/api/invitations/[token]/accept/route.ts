@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { invitations, org_members } from '@/lib/db/schema';
 import { getSession, setSessionCookie, createSessionRow } from '@/lib/auth';
 import { audit } from '@/lib/audit';
+import { publishEvent } from '@/lib/webhooks';
 import { eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -103,6 +104,8 @@ export async function POST(
       targetId: invite.id,
       metadata: { role: invite.role, alreadyMember: !!existing },
     }).catch((err) => console.error('[invitations:accept] audit failed', err));
+
+    publishEvent({ orgId: invite.org_id, type: 'member.joined', data: { user_id: session.userId, email: session.email, role: invite.role } });
 
     return NextResponse.json({
       success: true,

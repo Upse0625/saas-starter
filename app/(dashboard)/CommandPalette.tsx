@@ -14,6 +14,7 @@ import {
   User,
   Bell,
   Laptop,
+  Webhook,
   LogOut,
   Search,
   CornerDownLeft,
@@ -39,6 +40,7 @@ const COMMANDS: Command[] = [
   { label: 'Members', group: 'Workspace', href: '/settings/members', icon: Users, keywords: 'team invite roles pending' },
   { label: 'Billing', group: 'Workspace', href: '/settings/billing', icon: CreditCard, keywords: 'plan subscription invoices' },
   { label: 'Organization API keys', group: 'Workspace', href: '/settings/api-keys', icon: KeyRound, keywords: 'token v1 api' },
+  { label: 'Webhooks', group: 'Workspace', href: '/settings/webhooks', icon: Webhook, keywords: 'events endpoints delivery signing' },
   { label: 'Activity log', group: 'Workspace', href: '/settings/activity', icon: Activity, keywords: 'audit history' },
   { label: 'Sign out', group: 'Account', action: 'logout', icon: LogOut, keywords: 'logout leave' },
 ];

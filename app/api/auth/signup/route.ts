@@ -7,6 +7,7 @@ import { setSessionCookie, createSessionRow } from '@/lib/auth';
 import { nanoid, slugify } from '@/lib/utils';
 import { sendVerificationEmail } from '@/lib/email';
 import { audit } from '@/lib/audit';
+import { publishEvent } from '@/lib/webhooks';
 import { rateLimitByIp, getClientIp } from '@/lib/rate-limit';
 import { eq } from 'drizzle-orm';
 
@@ -118,6 +119,10 @@ export async function POST(request: NextRequest) {
     });
 
     await setSessionCookie({ userId, orgId, email, sessionId });
+
+    // Emit outbound webhook events (no-op until the org configures an endpoint).
+    publishEvent({ orgId, type: 'org.created', data: { id: orgId, name: orgName, slug } });
+    publishEvent({ orgId, type: 'user.created', data: { id: userId, email, name } });
 
     return NextResponse.json({ userId, orgId, email }, { status: 201 });
   } catch (err) {

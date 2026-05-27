@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import {
   Check,
   AlertCircle,
@@ -8,8 +8,10 @@ import {
   CreditCard,
   Receipt,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import type { PlanConfig } from '@/lib/stripe';
+import type { Invoice } from '@/app/api/stripe/invoices/route';
 
 interface BillingClientProps {
   currentPlan: string;
@@ -18,18 +20,49 @@ interface BillingClientProps {
   hasSubscription: boolean;
 }
 
-interface DemoInvoice {
-  id: string;
-  date: string;
-  amount: string;
-  status: 'Paid' | 'Open';
+interface InvoicesResponse {
+  invoices: Invoice[];
+  enabled: boolean;
+  reason?: 'no_stripe' | 'no_customer' | 'error';
+  error?: string;
 }
 
-const DEMO_INVOICES: DemoInvoice[] = [
-  { id: 'inv_demo_001', date: 'Apr 1, 2026', amount: '$29.00', status: 'Paid' },
-  { id: 'inv_demo_002', date: 'Mar 1, 2026', amount: '$29.00', status: 'Paid' },
-  { id: 'inv_demo_003', date: 'Feb 1, 2026', amount: '$29.00', status: 'Paid' },
-];
+function formatInvoiceDate(unix: number): string {
+  return new Date(unix * 1000).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function formatMoney(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(amount / 100);
+  } catch {
+    // Fall back if Stripe returns an unexpected currency code.
+    return `${(amount / 100).toFixed(2)} ${currency.toUpperCase()}`;
+  }
+}
+
+function statusChipClass(status: string | null): string {
+  switch (status) {
+    case 'paid':
+      return 'chip chip-green';
+    case 'open':
+      return 'chip chip-amber';
+    default:
+      // void, draft, uncollectible, null → neutral grey
+      return 'chip';
+  }
+}
+
+function statusLabel(status: string | null): string {
+  if (!status) return 'Unknown';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
 
 export default function BillingClient({
   currentPlan,
@@ -40,6 +73,33 @@ export default function BillingClient({
   const [isPending, startTransition] = useTransition();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
+  const [invoicesReason, setInvoicesReason] = useState<InvoicesResponse['reason']>();
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/stripe/invoices');
+        const data = (await res.json()) as InvoicesResponse;
+        if (!active) return;
+        setInvoices(data.invoices ?? []);
+        setInvoicesReason(data.reason);
+        setInvoicesError(data.reason === 'error' ? data.error ?? 'Failed to load invoices' : null);
+      } catch {
+        if (!active) return;
+        setInvoicesError('Failed to load invoices');
+      } finally {
+        if (active) setInvoicesLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const current = plans.find((p) => p.id === currentPlan);
   const currentIndex = plans.findIndex((p) => p.id === currentPlan);
@@ -264,7 +324,7 @@ export default function BillingClient({
         </div>
       </div>
 
-      {/* Invoices */}
+      {/* Billing history */}
       <div className="card overflow-hidden anim-fade-up delay-5">
         <div
           className="px-6 py-4 flex items-center justify-between"
@@ -272,7 +332,7 @@ export default function BillingClient({
         >
           <div className="flex items-center gap-2">
             <Receipt className="w-4 h-4" style={{ color: 'var(--muted-strong)' }} strokeWidth={1.85} />
-            <h2 className="font-semibold text-[15px]">Invoices</h2>
+            <h2 className="font-semibold text-[15px]">Billing history</h2>
           </div>
           {hasSubscription && isStripeEnabled && (
             <button onClick={handlePortal} className="btn btn-ghost btn-xs">
@@ -281,12 +341,19 @@ export default function BillingClient({
             </button>
           )}
         </div>
-        {hasSubscription ? (
+
+        {invoicesLoading ? (
+          <div className="px-6 py-12 flex items-center justify-center gap-2">
+            <span className="spinner" />
+            <span className="text-sm" style={{ color: 'var(--muted-strong)' }}>
+              Loading invoices…
+            </span>
+          </div>
+        ) : invoices.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>Invoice</th>
                   <th>Date</th>
                   <th>Amount</th>
                   <th>Status</th>
@@ -294,24 +361,44 @@ export default function BillingClient({
                 </tr>
               </thead>
               <tbody>
-                {DEMO_INVOICES.map((inv) => (
+                {invoices.map((inv) => (
                   <tr key={inv.id}>
-                    <td>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-                        {inv.id}
-                      </span>
+                    <td style={{ color: 'var(--muted-strong)' }}>
+                      {formatInvoiceDate(inv.created)}
                     </td>
-                    <td style={{ color: 'var(--muted-strong)' }}>{inv.date}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{inv.amount}</td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {formatMoney(inv.amount_paid, inv.currency)}
+                    </td>
                     <td>
-                      <span className={`chip ${inv.status === 'Paid' ? 'chip-green' : 'chip-amber'}`}>
-                        {inv.status}
+                      <span className={statusChipClass(inv.status)}>
+                        {statusLabel(inv.status)}
                       </span>
                     </td>
                     <td className="text-right">
-                      <button className="btn btn-ghost btn-xs" disabled>
-                        Download
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        {inv.invoice_pdf && (
+                          <a
+                            href={inv.invoice_pdf}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost btn-xs"
+                          >
+                            <Download className="w-3 h-3" />
+                            PDF
+                          </a>
+                        )}
+                        {inv.hosted_invoice_url && (
+                          <a
+                            href={inv.hosted_invoice_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost btn-xs"
+                          >
+                            View
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -326,10 +413,28 @@ export default function BillingClient({
             >
               <Receipt className="w-5 h-5" style={{ color: 'var(--muted)' }} strokeWidth={1.85} />
             </div>
-            <p className="text-sm font-medium">No invoices yet</p>
-            <p className="text-sm mt-1" style={{ color: 'var(--muted-strong)' }}>
-              Upgrade to a paid plan and your invoices will appear here.
-            </p>
+            {invoicesError ? (
+              <>
+                <p className="text-sm font-medium">Couldn&apos;t load billing history</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--muted-strong)' }}>
+                  {invoicesError}
+                </p>
+              </>
+            ) : invoicesReason === 'no_stripe' ? (
+              <>
+                <p className="text-sm font-medium">Billing history appears here once Stripe is connected.</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+                  Connect Stripe to start tracking invoices and payments.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium">No invoices yet</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--muted-strong)' }}>
+                  They&apos;ll show up here after your first payment.
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>

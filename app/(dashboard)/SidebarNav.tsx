@@ -15,6 +15,7 @@ import {
   User,
   Bell,
   Laptop,
+  Webhook,
   Search,
   LogOut,
   ChevronsUpDown,
@@ -56,6 +57,7 @@ const workspaceNav: NavItem[] = [
   { href: '/settings/members', label: 'Members', icon: Users },
   { href: '/settings/billing', label: 'Billing', icon: CreditCard },
   { href: '/settings/api-keys', label: 'API Keys', icon: KeyRound },
+  { href: '/settings/webhooks', label: 'Webhooks', icon: Webhook },
   { href: '/settings/activity', label: 'Activity', icon: Activity },
 ];
 

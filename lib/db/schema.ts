@@ -59,6 +59,37 @@ export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
 export type OrgMember = typeof org_members.$inferSelect;
 export type NewOrgMember = typeof org_members.$inferInsert;
+export const webhook_endpoints = sqliteTable('webhook_endpoints', {
+  id: text('id').primaryKey(),
+  org_id: text('org_id').notNull().references(() => organizations.id),
+  url: text('url').notNull(),
+  secret: text('secret').notNull(),
+  description: text('description'),
+  events: text('events').notNull().default('*'), // comma-separated event types, or '*'
+  enabled: integer('enabled').notNull().default(1),
+  created_by_user_id: text('created_by_user_id').notNull().references(() => users.id),
+  created_at: text('created_at').notNull(),
+});
+
+export const webhook_deliveries = sqliteTable('webhook_deliveries', {
+  id: text('id').primaryKey(),
+  endpoint_id: text('endpoint_id').notNull().references(() => webhook_endpoints.id),
+  org_id: text('org_id').notNull().references(() => organizations.id),
+  event_type: text('event_type').notNull(),
+  event_id: text('event_id').notNull(),
+  payload: text('payload').notNull(),
+  status: text('status', { enum: ['pending', 'success', 'failed'] }).notNull().default('pending'),
+  status_code: integer('status_code'),
+  response_body: text('response_body'),
+  error: text('error'),
+  attempts: integer('attempts').notNull().default(0),
+  next_retry_at: text('next_retry_at'),
+  last_attempt_at: text('last_attempt_at'),
+  created_at: text('created_at').notNull(),
+});
+
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
 export type NotificationPreferences = typeof notification_preferences.$inferSelect;
+export type WebhookEndpoint = typeof webhook_endpoints.$inferSelect;
+export type WebhookDelivery = typeof webhook_deliveries.$inferSelect;
