@@ -5,6 +5,7 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   password_hash: text('password_hash').notNull(),
   name: text('name').notNull(),
+  avatar: text('avatar'), // base64 data URL (see file-storage note in README)
   email_verified_at: text('email_verified_at'),
   totp_secret: text('totp_secret'),
   totp_enabled: integer('totp_enabled').notNull().default(0),
@@ -16,10 +17,20 @@ export const organizations = sqliteTable('organizations', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
+  logo: text('logo'), // base64 data URL
   plan: text('plan', { enum: ['starter', 'pro', 'enterprise'] }).notNull().default('starter'),
   stripe_customer_id: text('stripe_customer_id'),
   stripe_subscription_id: text('stripe_subscription_id'),
   created_at: text('created_at').notNull(),
+});
+
+export const notification_preferences = sqliteTable('notification_preferences', {
+  user_id: text('user_id').primaryKey().references(() => users.id),
+  product_updates: integer('product_updates').notNull().default(1),
+  security_alerts: integer('security_alerts').notNull().default(1),
+  team_activity: integer('team_activity').notNull().default(1),
+  billing: integer('billing').notNull().default(1),
+  updated_at: text('updated_at').notNull(),
 });
 
 export const org_members = sqliteTable('org_members', {
@@ -50,3 +61,4 @@ export type OrgMember = typeof org_members.$inferSelect;
 export type NewOrgMember = typeof org_members.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
+export type NotificationPreferences = typeof notification_preferences.$inferSelect;

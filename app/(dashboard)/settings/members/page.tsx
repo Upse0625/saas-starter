@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { organizations, org_members, users } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { organizations, org_members, invitations, users } from '@/lib/db/schema';
+import { eq, and, isNull, gt, sql } from 'drizzle-orm';
 import MembersClient from './MembersClient';
 
 export default async function MembersPage() {
@@ -31,10 +31,33 @@ export default async function MembersPage() {
       user_id: users.id,
       name: users.name,
       email: users.email,
+      avatar: users.avatar,
     })
     .from(org_members)
     .innerJoin(users, eq(org_members.user_id, users.id))
     .where(eq(org_members.org_id, session.orgId))
+    .all();
+
+  // Pending invitations: not accepted, not declined, not expired.
+  // Expiry is filtered in SQL (against the DB clock) to keep render pure.
+  const pendingInvites = await db
+    .select({
+      id: invitations.id,
+      email: invitations.email,
+      role: invitations.role,
+      token: invitations.token,
+      expires_at: invitations.expires_at,
+      created_at: invitations.created_at,
+    })
+    .from(invitations)
+    .where(
+      and(
+        eq(invitations.org_id, session.orgId),
+        isNull(invitations.accepted_at),
+        isNull(invitations.declined_at),
+        gt(invitations.expires_at, sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`),
+      ),
+    )
     .all();
 
   const canManage = membership.role === 'owner' || membership.role === 'admin';
@@ -55,6 +78,7 @@ export default async function MembersPage() {
 
       <MembersClient
         initialMembers={members}
+        initialInvitations={pendingInvites}
         currentUserId={session.userId}
         canManage={canManage}
         orgPlan={org.plan}

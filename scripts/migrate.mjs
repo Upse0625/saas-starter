@@ -19,6 +19,7 @@ db.exec(`
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
+    avatar TEXT,
     email_verified_at TEXT,
     totp_secret TEXT,
     totp_enabled INTEGER NOT NULL DEFAULT 0,
@@ -30,10 +31,20 @@ db.exec(`
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
+    logo TEXT,
     plan TEXT NOT NULL DEFAULT 'starter',
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
     created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS notification_preferences (
+    user_id TEXT PRIMARY KEY REFERENCES users(id),
+    product_updates INTEGER NOT NULL DEFAULT 1,
+    security_alerts INTEGER NOT NULL DEFAULT 1,
+    team_activity INTEGER NOT NULL DEFAULT 1,
+    billing INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS org_members (
@@ -79,6 +90,7 @@ db.exec(`
     name TEXT NOT NULL,
     key_hash TEXT NOT NULL UNIQUE,
     key_prefix TEXT NOT NULL,
+    scope TEXT NOT NULL DEFAULT 'org',
     last_used_at TEXT,
     revoked_at TEXT,
     created_at TEXT NOT NULL

@@ -22,6 +22,7 @@ function migrate() {
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
+      avatar TEXT,
       email_verified_at TEXT,
       totp_secret TEXT,
       totp_enabled INTEGER NOT NULL DEFAULT 0,
@@ -33,10 +34,20 @@ function migrate() {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
+      logo TEXT,
       plan TEXT NOT NULL DEFAULT 'starter',
       stripe_customer_id TEXT,
       stripe_subscription_id TEXT,
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      user_id TEXT PRIMARY KEY REFERENCES users(id),
+      product_updates INTEGER NOT NULL DEFAULT 1,
+      security_alerts INTEGER NOT NULL DEFAULT 1,
+      team_activity INTEGER NOT NULL DEFAULT 1,
+      billing INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS org_members (
@@ -82,6 +93,7 @@ function migrate() {
       name TEXT NOT NULL,
       key_hash TEXT NOT NULL UNIQUE,
       key_prefix TEXT NOT NULL,
+      scope TEXT NOT NULL DEFAULT 'org',
       last_used_at TEXT,
       revoked_at TEXT,
       created_at TEXT NOT NULL
@@ -142,6 +154,17 @@ function migrate() {
   const inviteCols = sqlite.prepare("PRAGMA table_info(invitations)").all() as { name: string }[];
   if (!inviteCols.some(c => c.name === 'declined_at')) {
     sqlite.exec('ALTER TABLE invitations ADD COLUMN declined_at TEXT');
+  }
+
+  // Phase 1 dashboard columns — backfill for existing DBs.
+  if (!colNames.has('avatar')) sqlite.exec('ALTER TABLE users ADD COLUMN avatar TEXT');
+
+  const orgCols = sqlite.prepare("PRAGMA table_info(organizations)").all() as { name: string }[];
+  if (!orgCols.some(c => c.name === 'logo')) sqlite.exec('ALTER TABLE organizations ADD COLUMN logo TEXT');
+
+  const keyCols = sqlite.prepare("PRAGMA table_info(api_keys)").all() as { name: string }[];
+  if (!keyCols.some(c => c.name === 'scope')) {
+    sqlite.exec("ALTER TABLE api_keys ADD COLUMN scope TEXT NOT NULL DEFAULT 'org'");
   }
 }
 

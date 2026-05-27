@@ -9,13 +9,18 @@ import {
   Users,
   CreditCard,
   KeyRound,
+  Key,
   Activity,
   Shield,
+  User,
+  Bell,
+  Laptop,
   Search,
   LogOut,
   ChevronsUpDown,
   Sparkles,
 } from 'lucide-react';
+import CommandPalette from './CommandPalette';
 
 interface SidebarNavProps {
   orgName: string;
@@ -36,12 +41,21 @@ const primaryNav: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
 ];
 
-const settingsNav: NavItem[] = [
+// Personal / account-level pages
+const accountNav: NavItem[] = [
+  { href: '/settings/profile', label: 'Profile', icon: User },
+  { href: '/settings/notifications', label: 'Notifications', icon: Bell },
+  { href: '/settings/security', label: 'Security', icon: Shield },
+  { href: '/settings/personal-keys', label: 'Personal Keys', icon: Key },
+  { href: '/settings/sessions', label: 'Sessions', icon: Laptop },
+];
+
+// Org / workspace-level pages
+const workspaceNav: NavItem[] = [
   { href: '/settings', label: 'General', icon: SettingsIcon },
   { href: '/settings/members', label: 'Members', icon: Users },
   { href: '/settings/billing', label: 'Billing', icon: CreditCard },
   { href: '/settings/api-keys', label: 'API Keys', icon: KeyRound },
-  { href: '/settings/security', label: 'Security', icon: Shield },
   { href: '/settings/activity', label: 'Activity', icon: Activity },
 ];
 
@@ -54,7 +68,6 @@ export default function SidebarNav({
 }: SidebarNavProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [query, setQuery] = useState('');
   const [signingOut, setSigningOut] = useState(false);
 
   async function handleLogout() {
@@ -64,10 +77,9 @@ export default function SidebarNav({
     router.refresh();
   }
 
-  const allItems = [...primaryNav, ...settingsNav];
-  const filtered = query.trim()
-    ? allItems.filter((it) => it.label.toLowerCase().includes(query.trim().toLowerCase()))
-    : null;
+  function openPalette() {
+    window.dispatchEvent(new Event('command-palette:open'));
+  }
 
   function isActive(href: string) {
     if (href === '/dashboard') return pathname === '/dashboard';
@@ -150,56 +162,57 @@ export default function SidebarNav({
         </button>
       </div>
 
-      {/* Search */}
+      {/* Search → opens the ⌘K command palette */}
       <div className="px-3 pt-3 pb-2">
-        <div className="relative">
-          <Search
-            className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-            style={{ color: 'var(--muted)' }}
-          />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search…"
-            className="input"
-            style={{
-              padding: '7px 10px 7px 32px',
-              fontSize: '13px',
-              backgroundColor: 'var(--bg-subtle)',
-              borderColor: 'transparent',
-            }}
-          />
-        </div>
+        <button
+          type="button"
+          onClick={openPalette}
+          className="w-full flex items-center gap-2 rounded-md transition-colors"
+          style={{
+            padding: '7px 10px',
+            fontSize: '13px',
+            backgroundColor: 'var(--bg-subtle)',
+            color: 'var(--muted)',
+            border: '1px solid transparent',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+        >
+          <Search className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="flex-1 text-left">Search…</span>
+          <kbd
+            className="text-[10px] px-1.5 py-0.5 rounded font-mono"
+            style={{ background: 'var(--bg-muted, rgba(0,0,0,0.05))' }}
+          >
+            ⌘K
+          </kbd>
+        </button>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 pt-2 pb-3 space-y-5 overflow-y-auto">
-        {filtered ? (
-          <div className="space-y-0.5">
-            {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-xs" style={{ color: 'var(--muted)' }}>
-                No matches.
-              </p>
-            ) : (
-              filtered.map(renderLink)
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="space-y-0.5">{primaryNav.map(renderLink)}</div>
-            <div>
-              <p
-                className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider"
-                style={{ color: 'var(--muted)' }}
-              >
-                Settings
-              </p>
-              <div className="space-y-0.5">{settingsNav.map(renderLink)}</div>
-            </div>
-          </>
-        )}
+        <div className="space-y-0.5">{primaryNav.map(renderLink)}</div>
+        <div>
+          <p
+            className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--muted)' }}
+          >
+            Account
+          </p>
+          <div className="space-y-0.5">{accountNav.map(renderLink)}</div>
+        </div>
+        <div>
+          <p
+            className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--muted)' }}
+          >
+            Workspace
+          </p>
+          <div className="space-y-0.5">{workspaceNav.map(renderLink)}</div>
+        </div>
       </nav>
+
+      <CommandPalette />
 
       {/* Upgrade card (only on starter) */}
       {plan === 'starter' && (

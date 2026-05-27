@@ -22,7 +22,7 @@ export default async function ApiKeysPage() {
     .prepare(
       `SELECT id, name, key_prefix, last_used_at, created_at, revoked_at
        FROM api_keys
-       WHERE org_id = ?
+       WHERE org_id = ? AND (scope = 'org' OR scope IS NULL)
        ORDER BY created_at DESC`,
     )
     .all(session.orgId) as ApiKeyRow[];
