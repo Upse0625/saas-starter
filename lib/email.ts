@@ -22,7 +22,13 @@ export async function sendEmail({ to, subject, text, html }: SendArgs): Promise<
     console.log(`To: ${to}\nSubject: ${subject}\n${text}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
     return;
   }
-  await c.emails.send({ from: FROM, to, subject, text, html: html ?? text.replace(/\n/g, '<br>') });
+  // Resend's SDK returns API errors in { data, error } instead of throwing —
+  // surface them so problems like an unverified sender domain don't get swallowed.
+  const result = await c.emails.send({ from: FROM, to, subject, text, html: html ?? text.replace(/\n/g, '<br>') });
+  if (result.error) {
+    console.error(`[email] Resend rejected "${subject}" to ${to}:`, result.error.name, '-', result.error.message);
+    throw new Error(`Resend: ${result.error.name} — ${result.error.message}`);
+  }
 }
 
 // ─── HTML template kit ───────────────────────────────────────────────────────
