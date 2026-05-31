@@ -37,6 +37,11 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
+  // New users must finish onboarding before reaching the dashboard.
+  if (!user.onboarded_at) {
+    redirect('/onboarding');
+  }
+
   return (
     <div
       className="flex h-screen overflow-hidden"

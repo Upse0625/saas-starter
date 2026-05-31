@@ -3,6 +3,7 @@ import { sqlite } from '@/lib/db';
 import { requireSession } from '@/lib/auth';
 import { generateKey } from '@/lib/api-key';
 import { audit } from '@/lib/audit';
+import { publishEvent } from '@/lib/webhooks';
 import { nanoid } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -74,6 +75,8 @@ export async function POST(request: NextRequest) {
     targetId: id,
     metadata: { name: rawName, prefix },
   });
+
+  publishEvent({ orgId: session.orgId, type: 'api_key.created', data: { id, name: rawName, prefix } });
 
   return NextResponse.json({ id, name: rawName, key: full }, { status: 201 });
 }

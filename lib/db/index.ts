@@ -23,6 +23,7 @@ function migrate() {
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
       avatar TEXT,
+      onboarded_at TEXT,
       email_verified_at TEXT,
       totp_secret TEXT,
       totp_enabled INTEGER NOT NULL DEFAULT 0,
@@ -191,6 +192,7 @@ function migrate() {
 
   // Phase 1 dashboard columns — backfill for existing DBs.
   if (!colNames.has('avatar')) sqlite.exec('ALTER TABLE users ADD COLUMN avatar TEXT');
+  if (!colNames.has('onboarded_at')) sqlite.exec('ALTER TABLE users ADD COLUMN onboarded_at TEXT');
 
   const orgCols = sqlite.prepare("PRAGMA table_info(organizations)").all() as { name: string }[];
   if (!orgCols.some(c => c.name === 'logo')) sqlite.exec('ALTER TABLE organizations ADD COLUMN logo TEXT');

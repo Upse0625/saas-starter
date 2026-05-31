@@ -5,7 +5,7 @@ import { db, sqlite } from '@/lib/db';
 import { users, organizations, org_members } from '@/lib/db/schema';
 import { setSessionCookie, createSessionRow } from '@/lib/auth';
 import { nanoid, slugify } from '@/lib/utils';
-import { sendVerificationEmail } from '@/lib/email';
+import { sendVerificationEmail, sendWelcomeEmail } from '@/lib/email';
 import { audit } from '@/lib/audit';
 import { publishEvent } from '@/lib/webhooks';
 import { rateLimitByIp, getClientIp } from '@/lib/rate-limit';
@@ -98,6 +98,8 @@ export async function POST(request: NextRequest) {
     } catch (err) {
       console.error('[signup] verification email failed', err);
     }
+
+    sendWelcomeEmail(email, name).catch((err) => console.error('[signup] welcome email failed', err));
 
     try {
       await audit({

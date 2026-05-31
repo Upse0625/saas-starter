@@ -6,6 +6,7 @@ export const users = sqliteTable('users', {
   password_hash: text('password_hash').notNull(),
   name: text('name').notNull(),
   avatar: text('avatar'), // base64 data URL (see file-storage note in README)
+  onboarded_at: text('onboarded_at'),
   email_verified_at: text('email_verified_at'),
   totp_secret: text('totp_secret'),
   totp_enabled: integer('totp_enabled').notNull().default(0),

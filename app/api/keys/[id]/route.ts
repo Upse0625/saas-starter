@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { sqlite } from '@/lib/db';
 import { requireSession } from '@/lib/auth';
 import { audit } from '@/lib/audit';
+import { publishEvent } from '@/lib/webhooks';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,8 @@ export async function DELETE(
     targetId: id,
     metadata: { name: row.name },
   });
+
+  publishEvent({ orgId: session.orgId, type: 'api_key.revoked', data: { id, name: row.name } });
 
   return NextResponse.json({ ok: true, revoked_at: revokedAt });
 }

@@ -301,6 +301,12 @@ select.input {
 .tbl tr:hover td { background-color: var(--bg-subtle); }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   Details / summary (FAQ accordion)
+   ───────────────────────────────────────────────────────────────────────── */
+summary::-webkit-details-marker { display: none; }
+summary::marker { content: ""; }
+
+/* ─────────────────────────────────────────────────────────────────────────
    Hero gradient surface
    ───────────────────────────────────────────────────────────────────────── */
 .hero-surface {

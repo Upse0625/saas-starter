@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { org_members, users } from '@/lib/db/schema';
 import { getSession } from '@/lib/auth';
 import { audit } from '@/lib/audit';
+import { publishEvent } from '@/lib/webhooks';
 import { eq, and } from 'drizzle-orm';
 
 export async function GET() {
@@ -101,6 +102,8 @@ export async function PATCH(request: NextRequest) {
     console.error('[members:patch] audit failed', err);
   });
 
+  publishEvent({ orgId: session.orgId, type: 'member.role_changed', data: { user_id: target.user_id, from: previousRole, to: newRole } });
+
   return NextResponse.json({ ok: true });
 }
 
@@ -165,6 +168,8 @@ export async function DELETE(request: NextRequest) {
   }).catch((err) => {
     console.error('[members:delete] audit failed', err);
   });
+
+  publishEvent({ orgId: session.orgId, type: 'member.removed', data: { user_id: removedUserId, role: removedRole } });
 
   return NextResponse.json({ ok: true });
 }

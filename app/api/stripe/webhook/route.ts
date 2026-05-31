@@ -3,6 +3,7 @@ import { getStripe } from '@/lib/stripe';
 import { db } from '@/lib/db';
 import { organizations } from '@/lib/db/schema';
 import { audit } from '@/lib/audit';
+import { publishEvent } from '@/lib/webhooks';
 import { eq } from 'drizzle-orm';
 import type { PlanId } from '@/lib/stripe';
 
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest) {
         }).catch((err) => {
           console.error('[webhook] audit failed', err);
         });
+
+        publishEvent({ orgId, type: 'billing.subscription_updated', data: { plan: planId, status: 'active', event: event.type } });
       }
       break;
     }

@@ -11,8 +11,62 @@ import {
   Mail,
   Database,
   Sparkles,
+  Webhook,
+  Plus,
+  Quote,
 } from 'lucide-react';
 import { PLANS } from '@/lib/stripe';
+
+const testimonials = [
+  {
+    quote:
+      'Shipped my MVP in a weekend instead of a month. Auth, billing, and teams were already wired together — I just built my actual product on top.',
+    name: 'Alex Rivera',
+    role: 'Indie founder',
+    company: 'solo',
+  },
+  {
+    quote:
+      'The multi-tenancy and audit log saved us weeks. It is the boring infrastructure we always end up rebuilding, done properly out of the box.',
+    name: 'Priya Nair',
+    role: 'CTO',
+    company: 'seed-stage startup',
+  },
+  {
+    quote:
+      'Clean code, sensible defaults, real TypeScript types everywhere. The Stripe webhooks just worked. Easily paid for itself on day one.',
+    name: 'Marcus Lee',
+    role: 'Lead engineer',
+    company: 'B2B SaaS',
+  },
+];
+
+const faqs = [
+  {
+    q: "What's included?",
+    a: 'Everything you need to launch a SaaS: email/password auth with JWT sessions, two-factor auth (TOTP), email verification and password reset, organizations with member roles and email invites, Stripe subscription billing, hashed API keys with a public /v1 REST API, an audit log, and transactional email via Resend — all pre-wired in Next.js 16 with Drizzle ORM and TypeScript.',
+  },
+  {
+    q: 'Can I use it commercially?',
+    a: 'Yes. The license lets you build and ship your own projects and products — including commercial ones — and modify the code freely. The only restriction is that you cannot repackage and resell it as a competing starter template or boilerplate.',
+  },
+  {
+    q: 'SQLite or Postgres?',
+    a: 'The starter ships on SQLite (WAL mode, with indexed hot paths) so you can run it locally with zero setup. Because data access goes through Drizzle ORM, the schema and queries port cleanly to Postgres or another supported database when you are ready to scale.',
+  },
+  {
+    q: 'Does it support Stripe?',
+    a: 'Yes. Subscription Checkout, the Customer Portal, and webhook-driven plan updates are all wired up across three tiers (Starter, Pro, Enterprise). Drop in your Stripe secret key and price IDs and billing works end to end.',
+  },
+  {
+    q: 'Is there a license restriction?',
+    a: 'It is MIT with a single non-compete clause: you may use, modify, and ship it in your own apps and commercial products, but you may not resell or redistribute it — in whole or substantial part — as a competing starter template, boilerplate, or scaffold.',
+  },
+  {
+    q: 'Do I get updates?',
+    a: 'Yes. Buyers receive updates as the starter evolves — bug fixes, dependency bumps, and new building blocks. You keep using whatever version you have shipped; pull in updates on your own schedule.',
+  },
+];
 
 const features = [
   {
@@ -99,14 +153,9 @@ export default function LandingPage() {
             <a href="#pricing" className="hover:text-[color:var(--fg)] transition-colors">
               Pricing
             </a>
-            <a
-              href="https://github.com"
-              className="hover:text-[color:var(--fg)] transition-colors"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <Link href="/docs" className="hover:text-[color:var(--fg)] transition-colors">
               Docs
-            </a>
+            </Link>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -241,6 +290,310 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ───────── Features deep-dive ───────── */}
+      <section
+        className="py-24 md:py-32 px-6"
+        style={{ backgroundColor: 'var(--bg-subtle)', borderTop: '1px solid var(--border-subtle)' }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="max-w-2xl mb-20">
+            <span className="chip chip-accent mb-4">UNDER THE HOOD</span>
+            <h2 className="text-3xl md:text-5xl font-semibold mt-4 mb-5" style={{ letterSpacing: '-0.025em' }}>
+              Not a demo. The real plumbing.
+            </h2>
+            <p className="text-lg" style={{ color: 'var(--muted-strong)', lineHeight: 1.6 }}>
+              Each system is built the way you would build it for production — typed end to end, indexed,
+              and integrated with the rest of the stack.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-20 md:gap-28">
+            {/* Row 1 — Auth & 2FA */}
+            <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+              <div>
+                <span
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-md mb-5"
+                  style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}
+                >
+                  <ShieldCheck className="w-5 h-5" strokeWidth={1.75} />
+                </span>
+                <h3 className="text-2xl md:text-3xl font-semibold mb-3" style={{ letterSpacing: '-0.02em' }}>
+                  Authentication &amp; 2FA, handled.
+                </h3>
+                <p className="text-base mb-5" style={{ color: 'var(--muted-strong)', lineHeight: 1.65 }}>
+                  Email and password sign-in backed by JWT cookies, verification emails, and password resets.
+                  Add a second factor with TOTP authenticator apps and one-time recovery codes — opt-in per user.
+                </p>
+                <ul className="space-y-2.5">
+                  {[
+                    'JWT cookie sessions with per-device revoke',
+                    'TOTP 2FA with QR setup & recovery codes',
+                    'Email verification and password reset flows',
+                  ].map((point) => (
+                    <li key={point} className="flex items-start gap-2.5 text-sm">
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--status-green)' }} strokeWidth={2.5} />
+                      <span style={{ color: 'var(--muted-strong)' }}>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card-elev p-6 md:p-7">
+                <div className="flex items-center gap-2 mb-5">
+                  <KeyRound className="w-4 h-4" style={{ color: 'var(--accent)' }} strokeWidth={2} />
+                  <span className="text-sm font-semibold">Two-factor authentication</span>
+                  <span className="chip chip-green ml-auto">Enabled</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div
+                    className="aspect-square rounded-md"
+                    style={{
+                      backgroundColor: 'var(--bg-muted)',
+                      backgroundImage:
+                        'repeating-conic-gradient(var(--fg) 0% 25%, transparent 0% 50%)',
+                      backgroundSize: '14px 14px',
+                      opacity: 0.85,
+                    }}
+                    aria-hidden="true"
+                  />
+                  <div className="flex flex-col justify-center gap-2">
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Recovery codes</p>
+                    {['7f2a-9c1d', 'b4e8-03af', 'd91c-5e7b'].map((code) => (
+                      <code
+                        key={code}
+                        className="font-mono text-xs px-2 py-1 rounded"
+                        style={{ backgroundColor: 'var(--code-bg)', color: 'var(--fg)' }}
+                      >
+                        {code}
+                      </code>
+                    ))}
+                  </div>
+                </div>
+                <div
+                  className="flex items-center justify-between text-sm rounded-md px-3 py-2.5"
+                  style={{ backgroundColor: 'var(--status-green-soft)', color: '#047857' }}
+                >
+                  <span className="font-medium">Verified · 6-digit code</span>
+                  <Check className="w-4 h-4" strokeWidth={2.5} />
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2 — Multi-tenancy (visual left) */}
+            <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+              <div className="md:order-2">
+                <span
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-md mb-5"
+                  style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}
+                >
+                  <Users className="w-5 h-5" strokeWidth={1.75} />
+                </span>
+                <h3 className="text-2xl md:text-3xl font-semibold mb-3" style={{ letterSpacing: '-0.02em' }}>
+                  Multi-tenancy &amp; roles built in.
+                </h3>
+                <p className="text-base mb-5" style={{ color: 'var(--muted-strong)', lineHeight: 1.65 }}>
+                  Organizations are first-class. Invite teammates by email with token-based acceptance,
+                  assign roles, and scope every query to the active tenant — no bolt-on workarounds.
+                </p>
+                <ul className="space-y-2.5">
+                  {[
+                    'Organizations with owner / admin / member roles',
+                    'Email invites with secure token acceptance',
+                    'Tenant-scoped data access throughout',
+                  ].map((point) => (
+                    <li key={point} className="flex items-start gap-2.5 text-sm">
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--status-green)' }} strokeWidth={2.5} />
+                      <span style={{ color: 'var(--muted-strong)' }}>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card-elev p-6 md:p-7 md:order-1">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-semibold">Acme Inc · Members</span>
+                  <span className="chip">4 / 25</span>
+                </div>
+                <div className="flex flex-col">
+                  {[
+                    { initials: 'JS', name: 'Jordan Sims', role: 'Owner', tone: 'chip-accent' },
+                    { initials: 'PN', name: 'Priya Nair', role: 'Admin', tone: 'chip' },
+                    { initials: 'MK', name: 'Mei Kim', role: 'Member', tone: 'chip' },
+                    { initials: 'TR', name: 'Tom Reyes', role: 'Invited', tone: 'chip-amber' },
+                  ].map((m, idx) => (
+                    <div
+                      key={m.name}
+                      className="flex items-center gap-3 py-2.5"
+                      style={{ borderTop: idx === 0 ? undefined : '1px solid var(--border-subtle)' }}
+                    >
+                      <span
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-semibold text-white"
+                        style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
+                      >
+                        {m.initials}
+                      </span>
+                      <span className="text-sm font-medium">{m.name}</span>
+                      <span className={`chip ${m.tone} ml-auto`}>{m.role}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3 — Stripe billing */}
+            <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+              <div>
+                <span
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-md mb-5"
+                  style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}
+                >
+                  <CreditCard className="w-5 h-5" strokeWidth={1.75} />
+                </span>
+                <h3 className="text-2xl md:text-3xl font-semibold mb-3" style={{ letterSpacing: '-0.02em' }}>
+                  Billing with Stripe, end to end.
+                </h3>
+                <p className="text-base mb-5" style={{ color: 'var(--muted-strong)', lineHeight: 1.65 }}>
+                  Subscription Checkout, the Customer Portal, and webhook-driven plan changes are wired across
+                  three tiers. Plan limits sync to your tenant automatically — add your keys and ship.
+                </p>
+                <ul className="space-y-2.5">
+                  {[
+                    'Checkout & Customer Portal sessions',
+                    'Webhook-synced subscription state',
+                    'Per-plan member & feature limits',
+                  ].map((point) => (
+                    <li key={point} className="flex items-start gap-2.5 text-sm">
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--status-green)' }} strokeWidth={2.5} />
+                      <span style={{ color: 'var(--muted-strong)' }}>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card-elev p-6 md:p-7">
+                <div className="flex items-center justify-between mb-5">
+                  <span className="text-sm font-semibold">Subscription</span>
+                  <span className="chip chip-accent">Pro</span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mb-1">
+                  <span className="text-4xl font-semibold font-mono" style={{ letterSpacing: '-0.03em' }}>
+                    $29
+                  </span>
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>/month</span>
+                </div>
+                <p className="text-xs mb-5" style={{ color: 'var(--muted)' }}>Renews on the 1st · via Stripe</p>
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex items-center gap-2.5 text-sm rounded-md px-3 py-2.5" style={{ backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)' }}>
+                    <CreditCard className="w-4 h-4" style={{ color: 'var(--muted)' }} strokeWidth={2} />
+                    <span style={{ color: 'var(--muted-strong)' }}>Visa ending 4242</span>
+                    <span className="chip chip-green ml-auto">Active</span>
+                  </div>
+                  <button type="button" className="btn btn-secondary btn-sm w-full" disabled>
+                    Manage in Customer Portal
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 4 — Webhooks & API (visual left) */}
+            <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+              <div className="md:order-2">
+                <span
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-md mb-5"
+                  style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}
+                >
+                  <Webhook className="w-5 h-5" strokeWidth={1.75} />
+                </span>
+                <h3 className="text-2xl md:text-3xl font-semibold mb-3" style={{ letterSpacing: '-0.02em' }}>
+                  Webhooks &amp; a public API.
+                </h3>
+                <p className="text-base mb-5" style={{ color: 'var(--muted-strong)', lineHeight: 1.65 }}>
+                  Issue hashed API keys with prefixes and per-key rate limits, then let customers hit a
+                  versioned <code className="font-mono text-sm px-1 py-0.5 rounded" style={{ backgroundColor: 'var(--code-bg)' }}>/v1</code> REST API
+                  authenticated by Bearer token. Stripe webhooks are verified and idempotent.
+                </p>
+                <ul className="space-y-2.5">
+                  {[
+                    'Hashed, prefixed API keys with rate limits',
+                    'Bearer-authenticated public /v1 endpoints',
+                    'Signature-verified, idempotent webhooks',
+                  ].map((point) => (
+                    <li key={point} className="flex items-start gap-2.5 text-sm">
+                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--status-green)' }} strokeWidth={2.5} />
+                      <span style={{ color: 'var(--muted-strong)' }}>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="md:order-1 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+                <div
+                  className="flex items-center gap-1.5 px-4 py-2.5"
+                  style={{ backgroundColor: 'var(--bg-muted)', borderBottom: '1px solid var(--border)' }}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#f87171' }} />
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#fbbf24' }} />
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#34d399' }} />
+                  <span className="ml-2 text-xs font-mono" style={{ color: 'var(--muted)' }}>terminal</span>
+                </div>
+                <pre
+                  className="font-mono text-xs md:text-[13px] p-4 md:p-5 overflow-x-auto leading-relaxed"
+                  style={{ backgroundColor: '#0f172a', color: '#e2e8f0' }}
+                >
+<span style={{ color: '#94a3b8' }}>$</span> curl https://api.saasly.dev/v1/members{'\n'}
+{'  '}<span style={{ color: '#a5b4fc' }}>-H</span> <span style={{ color: '#86efac' }}>&quot;Authorization: Bearer sk_live_••••&quot;</span>{'\n'}
+{'\n'}
+<span style={{ color: '#64748b' }}>{'{'}</span>{'\n'}
+{'  '}<span style={{ color: '#7dd3fc' }}>&quot;data&quot;</span>: [{'\n'}
+{'    '}{'{'} <span style={{ color: '#7dd3fc' }}>&quot;id&quot;</span>: <span style={{ color: '#86efac' }}>&quot;mem_4f2a&quot;</span>, <span style={{ color: '#7dd3fc' }}>&quot;role&quot;</span>: <span style={{ color: '#86efac' }}>&quot;admin&quot;</span> {'}'},{'\n'}
+{'    '}{'{'} <span style={{ color: '#7dd3fc' }}>&quot;id&quot;</span>: <span style={{ color: '#86efac' }}>&quot;mem_9c1d&quot;</span>, <span style={{ color: '#7dd3fc' }}>&quot;role&quot;</span>: <span style={{ color: '#86efac' }}>&quot;member&quot;</span> {'}'}{'\n'}
+{'  '}],{'\n'}
+{'  '}<span style={{ color: '#7dd3fc' }}>&quot;has_more&quot;</span>: <span style={{ color: '#fca5a5' }}>false</span>{'\n'}
+<span style={{ color: '#64748b' }}>{'}'}</span>
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────── Testimonials ───────── */}
+      {/* Replace with real testimonials */}
+      <section className="py-24 md:py-32 px-6" style={{ backgroundColor: 'var(--bg)' }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="chip chip-accent mb-4">TESTIMONIALS</span>
+            <h2 className="text-3xl md:text-5xl font-semibold mt-4 mb-4" style={{ letterSpacing: '-0.025em' }}>
+              Loved by builders who ship.
+            </h2>
+            <p className="text-lg" style={{ color: 'var(--muted-strong)' }}>
+              Founders and engineers who skipped the plumbing and got straight to their product.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {testimonials.map((t, i) => (
+              <figure key={t.name} className={`card p-7 flex flex-col anim-fade-up delay-${i + 1}`}>
+                <Quote className="w-7 h-7 mb-4" style={{ color: 'var(--accent)' }} strokeWidth={1.5} />
+                <blockquote className="text-[15px] leading-relaxed mb-6 flex-1" style={{ color: 'var(--fg)' }}>
+                  &ldquo;{t.quote}&rdquo;
+                </blockquote>
+                <figcaption className="flex items-center gap-3 pt-5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                  <span
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-semibold text-white"
+                    style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }}
+                  >
+                    {t.name.split(' ').map((n) => n[0]).join('')}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--fg)' }}>{t.name}</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                      {t.role} · {t.company}
+                    </p>
+                  </div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ───────── Pricing ───────── */}
       <section
         id="pricing"
@@ -318,6 +671,44 @@ export default function LandingPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* ───────── FAQ ───────── */}
+      <section className="py-24 md:py-32 px-6" style={{ backgroundColor: 'var(--bg)' }}>
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-14">
+            <span className="chip chip-accent mb-4">FAQ</span>
+            <h2 className="text-3xl md:text-5xl font-semibold mt-4 mb-4" style={{ letterSpacing: '-0.025em' }}>
+              Questions, answered.
+            </h2>
+            <p className="text-lg" style={{ color: 'var(--muted-strong)' }}>
+              Everything you need to know before you buy.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {faqs.map((faq) => (
+              <details key={faq.q} className="card group p-0 overflow-hidden">
+                <summary
+                  className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 select-none"
+                  style={{ color: 'var(--fg)' }}
+                >
+                  <span className="text-[15px] font-semibold">{faq.q}</span>
+                  <Plus
+                    className="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-open:rotate-45"
+                    style={{ color: 'var(--muted)' }}
+                    strokeWidth={2}
+                  />
+                </summary>
+                <div className="px-5 pb-5 -mt-1">
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-strong)' }}>
+                    {faq.a}
+                  </p>
+                </div>
+              </details>
+            ))}
           </div>
         </div>
       </section>

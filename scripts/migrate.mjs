@@ -20,6 +20,7 @@ db.exec(`
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
     avatar TEXT,
+    onboarded_at TEXT,
     email_verified_at TEXT,
     totp_secret TEXT,
     totp_enabled INTEGER NOT NULL DEFAULT 0,
